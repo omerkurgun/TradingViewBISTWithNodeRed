@@ -1,0 +1,192 @@
+[
+    {
+        "id": "7bfd4b5bee87f8af",
+        "type": "tab",
+        "label": "Flow 1",
+        "disabled": false,
+        "info": "",
+        "env": []
+    },
+    {
+        "id": "b80326dde899130e",
+        "type": "inject",
+        "z": "7bfd4b5bee87f8af",
+        "name": "Hisse Kodu Al",
+        "props": [],
+        "repeat": "",
+        "crontab": "",
+        "once": false,
+        "onceDelay": 0.1,
+        "topic": "",
+        "x": 110,
+        "y": 160,
+        "wires": [
+            [
+                "bf6fe174352762c0"
+            ]
+        ]
+    },
+    {
+        "id": "0cc46beaab010b03",
+        "type": "function",
+        "z": "7bfd4b5bee87f8af",
+        "name": "Body Object Oluştur",
+        "func": "var bodyColumn = [];\n\n//columnKey'leri bir diziye ayrıştırıyoruz\nmsg.tradingViewColumns.columns.forEach((colItem) => bodyColumn.push(colItem.columnKey));\n\n//TradingView Request'imizi oluşturuyoruz\n\nvar bodyTradingView = {\n    \"columns\": bodyColumn,\n    \"filter\": [\n        {\n            \"left\": \"name\",\n            \"operation\": \"match\",\n            \"right\": msg.bistCode\n        }\n    ],\n    \"options\": {\n        \"lang\": \"tr\"\n    },\n    \"price_conversion\": {\n        \"to_symbol\": true\n    },\n    \"markets\": [\n        \"turkey\"\n    ]\n};\n\nmsg.bodyTradingView = bodyTradingView;\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 560,
+        "y": 160,
+        "wires": [
+            [
+                "3c79cddf3286a166"
+            ]
+        ]
+    },
+    {
+        "id": "65e3f69fa8f0d223",
+        "type": "debug",
+        "z": "7bfd4b5bee87f8af",
+        "name": "debug 1",
+        "active": true,
+        "tosidebar": true,
+        "console": false,
+        "tostatus": false,
+        "complete": "bistKeyAndValueList",
+        "targetType": "msg",
+        "statusVal": "",
+        "statusType": "auto",
+        "x": 1880,
+        "y": 160,
+        "wires": []
+    },
+    {
+        "id": "33eb38d4688937db",
+        "type": "http request",
+        "z": "7bfd4b5bee87f8af",
+        "name": "TradingView'e Request At",
+        "method": "use",
+        "ret": "obj",
+        "paytoqs": "ignore",
+        "url": "",
+        "tls": "",
+        "persist": false,
+        "proxy": "",
+        "insecureHTTPParser": false,
+        "authType": "",
+        "senderr": false,
+        "headers": [],
+        "x": 1090,
+        "y": 160,
+        "wires": [
+            [
+                "44dac881eaed22cd"
+            ]
+        ]
+    },
+    {
+        "id": "bf6fe174352762c0",
+        "type": "change",
+        "z": "7bfd4b5bee87f8af",
+        "name": "Değişkenler",
+        "rules": [
+            {
+                "t": "set",
+                "p": "bistCode",
+                "pt": "msg",
+                "to": "AVPGY",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "tradingViewColumns",
+                "pt": "msg",
+                "to": "{\"columns\":[{\"name\":\"Borsa Kodu\",\"columnKey\":\"name\"},{\"name\":\"Son Fiyat\",\"columnKey\":\"close\"}]}",
+                "tot": "json"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 290,
+        "y": 160,
+        "wires": [
+            [
+                "0cc46beaab010b03"
+            ]
+        ]
+    },
+    {
+        "id": "3c79cddf3286a166",
+        "type": "change",
+        "z": "7bfd4b5bee87f8af",
+        "name": "Request Object Oluştur",
+        "rules": [
+            {
+                "t": "set",
+                "p": "url",
+                "pt": "msg",
+                "to": "https://scanner.tradingview.com/turkey/scan",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "method",
+                "pt": "msg",
+                "to": "POST",
+                "tot": "str"
+            },
+            {
+                "t": "set",
+                "p": "headers",
+                "pt": "msg",
+                "to": "{\"Content-Type\":\"application/json\"}",
+                "tot": "json"
+            },
+            {
+                "t": "set",
+                "p": "payload",
+                "pt": "msg",
+                "to": "bodyTradingView",
+                "tot": "msg"
+            }
+        ],
+        "action": "",
+        "property": "",
+        "from": "",
+        "to": "",
+        "reg": false,
+        "x": 810,
+        "y": 160,
+        "wires": [
+            [
+                "33eb38d4688937db"
+            ]
+        ]
+    },
+    {
+        "id": "44dac881eaed22cd",
+        "type": "function",
+        "z": "7bfd4b5bee87f8af",
+        "name": "Response Al ve İşle",
+        "func": "if (msg.statusCode == 200) {\n    if (msg.payload != null && msg.payload.data != null) {\n        if (msg.payload.data.length > 0) {\n\n            if (msg.payload.data[0].d != null) {\n\n                //Kolonlara Index sıralı değerlerini ata\n\n                var keyAndValueList = {};\n\n                let indexNumber = 0;\n\n                msg.payload.data[0].d.forEach((colValItem) => {\n\n                    keyAndValueList[msg.tradingViewColumns.columns[indexNumber].name] = colValItem;\n\n                    indexNumber++;\n                    \n                });\n\n                msg.bistKeyAndValueList = keyAndValueList;\n\n            }\n\n        }\n    }\n}\n\nreturn msg;",
+        "outputs": 1,
+        "timeout": 0,
+        "noerr": 0,
+        "initialize": "",
+        "finalize": "",
+        "libs": [],
+        "x": 1390,
+        "y": 160,
+        "wires": [
+            [
+                "65e3f69fa8f0d223"
+            ]
+        ]
+    }
+]
